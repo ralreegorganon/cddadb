@@ -10,7 +10,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"github.com/ralreegorganon/cddadb"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,7 +33,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stmt, err := txn.Prepare(pq.CopyIn("item", "id", "type", "name", "source"))
+	stmt, err := txn.Prepare(pq.CopyIn("item", "id", "type", "source", "raw"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,14 +67,20 @@ func main() {
 			log.Fatal(err)
 		}
 
-		var data []cddadb.Item
+		var data []map[string]interface{}
 		err = json.Unmarshal(itemText, &data)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		for _, d := range data {
-			_, err = stmt.Exec(d.ID, d.Type, d.Name, f)
+			raw, err := json.Marshal(d)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			//fmt.Printf("%s\n", string(raw))
+			_, err = stmt.Exec(d["id"], d["type"], f, string(raw))
 			if err != nil {
 				log.Fatal(err)
 			}
