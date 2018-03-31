@@ -21,7 +21,9 @@ func (db *DB) GetItems() ([]*Item, error) {
 	items := []*Item{}
 	err := db.Select(&items, `
 		select 
-			*
+			id, 
+			abstract,
+			type
 		from 
 			item
 	`)

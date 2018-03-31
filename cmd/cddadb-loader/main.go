@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -33,12 +32,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stmt, err := txn.Prepare(pq.CopyIn("item", "id", "type", "source", "raw"))
+	stmt, err := txn.Prepare(pq.CopyIn("item", "abstract", "id", "type", "source", "raw"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	itemsRoot := "f:/code/cpp/Cataclysm-DDA/data/json/items"
+	itemsRoot := "/Users/jj/code/Cataclysm-DDA/data/json/items"
 	files := []string{}
 
 	err = filepath.Walk(itemsRoot, func(path string, info os.FileInfo, err error) error {
@@ -59,6 +58,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	sources := map[string][]byte{}
+
 	for _, f := range files {
 		fmt.Printf("processing file: %s\n", f)
 
@@ -67,25 +68,31 @@ func main() {
 			log.Fatal(err)
 		}
 
-		var data []map[string]interface{}
-		err = json.Unmarshal(itemText, &data)
-		if err != nil {
-			log.Fatal(err)
-		}
+		sources[f] = itemText
 
-		for _, d := range data {
-			raw, err := json.Marshal(d)
+		/*
+			var data []map[string]interface{}
+			err = json.Unmarshal(itemText, &data)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			//fmt.Printf("%s\n", string(raw))
-			_, err = stmt.Exec(d["id"], d["type"], f, string(raw))
-			if err != nil {
-				log.Fatal(err)
+			for _, d := range data {
+				raw, err := json.Marshal(d)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				//fmt.Printf("%s\n", string(raw))
+				_, err = stmt.Exec(d["abstract"], d["id"], d["type"], f, string(raw))
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
-		}
+		*/
 	}
+
+	DoIt(sources)
 
 	_, err = stmt.Exec()
 	if err != nil {
