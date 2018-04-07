@@ -2,3 +2,4 @@ vendor
 build/bin
 build/migrations
 cmd/cddadb-loader/cddadb-loader
+cmd/cddadb-map/cddadb-map
