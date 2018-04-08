@@ -3,6 +3,7 @@ package metadata
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/imdario/mergo"
 	log "github.com/sirupsen/logrus"
 )
@@ -325,6 +327,26 @@ func (o *Overmap) buildTemplates() error {
 			}
 		}
 	}
+
+	colors := make(map[string]int)
+	foo := make([]string, 0)
+	for _, v := range o.built {
+		if v.Sym == 82 {
+			fmt.Println(v.Color)
+		}
+
+		if _, ok := colors[v.Color]; !ok {
+			colors[v.Color] = 0
+			foo = append(foo, v.Color)
+		}
+		colors[v.Color] = colors[v.Color] + 1
+	}
+	sort.Strings(foo)
+	for _, s := range foo {
+		fmt.Printf("case \"%v\":\n return white, black\n", s)
+	}
+	spew.Dump(colors)
+
 	return nil
 }
 
@@ -342,11 +364,92 @@ func (o *Overmap) Symbol(id string) string {
 	return "\u2622"
 }
 
-func (o *Overmap) Color(id string) *image.Uniform {
-	blue := color.RGBA{0, 0, 255, 255}
-	bz := image.NewUniform(blue)
-	if _, tok := o.built[id]; tok {
-		return bz
+func (o *Overmap) Color(id string) (*image.Uniform, *image.Uniform) {
+	white := image.NewUniform(color.RGBA{150, 150, 150, 255})
+	black := image.NewUniform(color.RGBA{0, 0, 0, 255})
+	if c, tok := o.built[id]; tok {
+		switch c.Color {
+		case "black_yellow":
+			return white, black
+		case "blue":
+			return image.NewUniform(color.RGBA{0, 0, 255, 255}), black
+		case "brown":
+			return white, black
+		case "c_yellow_green":
+			return white, black
+		case "cyan":
+			return white, black
+		case "dark_gray":
+			return white, black
+		case "dark_gray_magenta":
+			return white, black
+		case "green":
+			return image.NewUniform(color.RGBA{0, 128, 0, 255}), black
+		case "h_dark_gray":
+			return white, black
+		case "h_yellow":
+			return white, black
+		case "i_blue":
+			return white, black
+		case "i_brown":
+			return white, black
+		case "i_cyan":
+			return white, black
+		case "i_green":
+			return white, black
+		case "i_light_blue":
+			return white, black
+		case "i_light_cyan":
+			return white, black
+		case "i_light_gray":
+			return white, black
+		case "i_light_green":
+			return white, black
+		case "i_light_red":
+			return white, black
+		case "i_magenta":
+			return white, black
+		case "i_pink":
+			return white, black
+		case "i_red":
+			return white, black
+		case "i_yellow":
+			return white, black
+		case "light_blue":
+			return image.NewUniform(color.RGBA{173, 216, 230, 255}), black
+		case "light_cyan":
+			return white, black
+		case "light_gray":
+			return white, black
+		case "light_green":
+			return image.NewUniform(color.RGBA{144, 238, 144, 255}), black
+		case "light_green_yellow":
+			return white, black
+		case "light_red":
+			return white, black
+		case "magenta":
+			return white, black
+		case "pink":
+			return white, black
+		case "pink_magenta":
+			return white, black
+		case "red":
+			return white, black
+		case "white":
+			return white, black
+		case "white_magenta":
+			return white, black
+		case "white_white":
+			return white, black
+		case "yellow":
+			return white, black
+		case "yellow_cyan":
+			return white, black
+		case "yellow_magenta":
+			return white, black
+		default:
+			return white, black
+		}
 	}
-	return bz
+	return white, black
 }

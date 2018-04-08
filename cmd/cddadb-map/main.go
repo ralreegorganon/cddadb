@@ -26,49 +26,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	save := "/Users/jj/code/Cataclysm-DDA/save/Grantsburg"
+	save := "/Users/jj/code/Cataclysm-DDA/save/Hannastown"
 	o, err := overmap.FromSave(save)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// err = o.RenderToFilesAlt(m, "/Users/jj/Desktop/Grantsburg")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// save := "/Users/jj/Downloads/TrinityCenter"
-	// o, err := overmap.FromSave(save)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// err = o.RenderToFilesAlt(m, "/Users/jj/Desktop/TrinityCenter")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// err = rasterize.BlamHacks("/Users/jj/Desktop/TrinityCenter/o_10")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// err = rasterize.Blam("/Users/jj/Desktop/Grantsburg/o_10")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 
 	w, err := o.RenderToAttributes(m)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// err = w.RenderToFiles("/Users/jj/Desktop/Grantsburg2")
+	// err = w.RenderToFiles("/Users/jj/Desktop/Hannastown")
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
 
-	err = rasterize.Blam2("/Users/jj/Desktop/Grantsburg2/", w)
+	err = rasterize.Blam2("/Users/jj/Desktop/Hannastown/", w)
 	if err != nil {
 		log.Fatal(err)
 	}

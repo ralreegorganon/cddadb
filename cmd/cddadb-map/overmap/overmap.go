@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/color"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -151,59 +150,6 @@ func FromSave(save string) (*Overmap, error) {
 	return o, nil
 }
 
-func (o *Overmap) RenderToFiles(m *metadata.Overmap, root string) error {
-	err := os.MkdirAll(root, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	for _, c := range o.Chunks {
-		for _, l := range c.Layers {
-			for _, e := range l {
-				if exists := m.Exists(e.OvermapTerrainID); !exists {
-					return fmt.Errorf("couldn't find terrain: %s", e.OvermapTerrainID)
-				}
-			}
-		}
-	}
-
-	for _, c := range o.Chunks {
-		textMap := [21][180][180]string{}
-		for li, l := range c.Layers {
-			lmi := 0
-			linearMap := [32400]string{}
-			for _, e := range l {
-				s := m.Symbol(e.OvermapTerrainID)
-				for i := 0; i < int(e.Count); i++ {
-					linearMap[lmi] = s
-					lmi++
-				}
-			}
-
-			for x := 0; x < 180; x++ {
-				for y := 0; y < 180; y++ {
-					textMap[li][x][y] = linearMap[x*180+y]
-				}
-			}
-
-			rows := [180]string{}
-			for i := 0; i < 180; i++ {
-				rows[i] = strings.Join(textMap[li][i][:], "")
-			}
-			layer := strings.Join(rows[:], "\n")
-
-			filename := filepath.Join(root, fmt.Sprintf("o.%v.%v.%v", c.X, c.Y, li))
-			f, err := os.Create(filename)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			f.WriteString(layer)
-		}
-	}
-	return nil
-}
-
 func abs(x int) int {
 	if x < 0 {
 		return -x
@@ -224,8 +170,9 @@ type WorldRow struct {
 }
 
 type WorldCell struct {
-	Symbol string
-	Color  *image.Uniform
+	Symbol  string
+	ColorFG *image.Uniform
+	ColorBG *image.Uniform
 }
 
 func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
@@ -274,12 +221,13 @@ func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
 			lzp := 0
 			for _, e := range l {
 				s := m.Symbol(e.OvermapTerrainID)
-				c := m.Color(e.OvermapTerrainID)
+				cfg, cbg := m.Color(e.OvermapTerrainID)
 				for i := 0; i < int(e.Count); i++ {
 					tmi := ci*680400 + li*32400 + lzp
 					cells[tmi] = WorldCell{
-						Symbol: s,
-						Color:  c,
+						Symbol:  s,
+						ColorFG: cfg,
+						ColorBG: cbg,
 					}
 					lzp++
 				}
@@ -287,21 +235,19 @@ func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
 		}
 	}
 
-	dc := image.NewUniform(color.RGBA{150, 150, 150, 255})
+	dfg, dbg := m.Color("default")
 	for i := 0; i < chunkCapacity; i++ {
 		if _, ok := doneChunks[i]; !ok {
 			fmt.Printf("filling in blank chunk: %v\n", i)
 			for e := 0; e < 680400; e++ {
 				cells[i*680400+e] = WorldCell{
-					Symbol: " ",
-					Color:  dc,
+					Symbol:  " ",
+					ColorFG: dfg,
+					ColorBG: dbg,
 				}
 			}
 		}
 	}
-
-	// chunk*680400 + layer*32400 + row*180 + cell
-	// chunk =  xchunk + ychunk*xchunksize
 
 	worldLayers := make([]WorldLayer, 21)
 	for l := 0; l < 21; l++ {
@@ -323,46 +269,7 @@ func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
 		}
 	}
 
-	// for li := 0; li < 21; li++ {
-	// 	for xi := 0; xi < cXSize; xi++ {
-	// 		for yi := 0; yi < cYSize; yi++ {
-	// 			for ri := 0; ri < 180; ri++ {
-	// 				worldCells := make([]WorldCell, 180*cXSize)
-	// 				for ci := 0; ci < 180; ci++ {
-	// 					worldCells[xi*180+ci] = cells[(xi+yi*cXSize)*680400+li*32400+ri*180+ci]
-	// 				}
-	// 				worldRows[yi*180+ri] = WorldRow{Cells: worldCells}
-	// 			}
-	// 		}
-	// 	}
-	// 	worldLayers[li] = WorldLayer{Rows: worldRows}
-	// }
-	world := World{Layers: worldLayers}
-
-	index := (0+0*cXSize)*680400 + 0*32400 + 0*180 + 0
-	fmt.Printf("checking out index: %v,  %v \n", index, cells[index])
-	fmt.Printf("wut: %v", world.Layers[0].Rows[0].Cells[0])
-	//fmt.Printf("first cell: %v", w.Layers[0].Rows[0].Cells[0])
-
-	// worldLayers := make([]WorldLayer, 21)
-	// for li := 0; li < 21; li++ {
-	// 	rows := make([]string, 180*cYSize)
-	// 	worldRows := make([]WorldRow, 180*cYSize)
-	// 	for xi := 0; xi < cXSize; xi++ {
-	// 		for yi := 0; yi < cYSize; yi++ {
-	// 			ci := xi + yi*cXSize
-	// 			for i := 0; i < 180; i++ {
-	// 				start := ci*680400 + li*32400 + i*180
-	// 				end := ci*680400 + li*32400 + i*180 + 180
-	// 				chunkrow := strings.Join(textMap[start:end], "")
-	// 				rows[yi*180+i] = rows[yi*180+i] + chunkrow
-	// 			}
-	// 		}
-	// 	}
-
-	// }
-
-	return &world, nil
+	return &World{Layers: worldLayers}, nil
 }
 
 func (w *World) RenderToFiles(root string) error {
@@ -387,136 +294,5 @@ func (w *World) RenderToFiles(root string) error {
 		}
 		f.WriteString(b.String())
 	}
-	return nil
-}
-
-func (o *Overmap) RenderToFilesAlt(m *metadata.Overmap, root string) error {
-	err := os.MkdirAll(root, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	missingTerrain := make(map[string]int)
-	for _, c := range o.Chunks {
-		for _, l := range c.Layers {
-			for _, e := range l {
-				if exists := m.Exists(e.OvermapTerrainID); !exists {
-					if _, ok := missingTerrain[e.OvermapTerrainID]; !ok {
-						missingTerrain[e.OvermapTerrainID] = 0
-					} else {
-						missingTerrain[e.OvermapTerrainID] = missingTerrain[e.OvermapTerrainID] + 1
-					}
-				}
-			}
-		}
-	}
-
-	if len(missingTerrain) > 0 {
-		for k, v := range missingTerrain {
-			fmt.Printf("missing terrain: %v x %v\n", k, v)
-		}
-	}
-
-	cXMax := 0
-	cXMin := 0
-	cYMax := 0
-	cYMin := 0
-
-	for _, c := range o.Chunks {
-		if c.X > cXMax {
-			cXMax = c.X
-		}
-		if c.Y > cYMax {
-			cYMax = c.Y
-		}
-		if c.X < cXMin {
-			cXMin = c.X
-		}
-		if c.Y < cYMin {
-			cYMin = c.Y
-		}
-	}
-
-	cXSize := abs(cXMax) + abs(cXMin) + 1
-	cYSize := abs(cYMax) + abs(cYMin) + 1
-
-	chunkCapacity := cXSize * cYSize
-
-	doneChunks := make(map[int]bool)
-	textMap := make([]string, 680400*chunkCapacity)
-	for _, c := range o.Chunks {
-		ci := c.X + (0 - cXMin) + cXSize*(c.Y+0-cYMin)
-		doneChunks[ci] = true
-		fmt.Printf("processing x:%v, y:%v as %v\n", c.X, c.Y, ci)
-		for li, l := range c.Layers {
-			lzp := 0
-			for _, e := range l {
-
-				var s string
-				if m.Exists(e.OvermapTerrainID) {
-					s = m.Symbol(e.OvermapTerrainID)
-				} else {
-					s = "?"
-				}
-
-				for i := 0; i < int(e.Count); i++ {
-					tmi := ci*680400 + li*32400 + lzp
-					textMap[tmi] = s
-					lzp++
-				}
-			}
-
-			// rows := [180]string{}
-			// for i := 0; i < 180; i++ {
-			// 	start := ci*680400 + li*32400 + i*180
-			// 	end := ci*680400 + li*32400 + i*180 + 180
-			// 	rows[i] = strings.Join(textMap[start:end], "")
-			// }
-
-			// layer := strings.Join(rows[:], "\n")
-
-			// filename := filepath.Join(root, fmt.Sprintf("o.%v.%v.%v", c.X, c.Y, li))
-			// f, err := os.Create(filename)
-			// if err != nil {
-			// 	return err
-			// }
-			// defer f.Close()
-			// f.WriteString(layer)
-		}
-	}
-
-	for i := 0; i < chunkCapacity; i++ {
-		if _, ok := doneChunks[i]; !ok {
-			for e := 0; e < 680400; e++ {
-				textMap[i*680400+e] = " "
-			}
-		}
-	}
-
-	for li := 0; li < 21; li++ {
-		rows := make([]string, 180*cYSize)
-		for xi := 0; xi < cXSize; xi++ {
-			for yi := 0; yi < cYSize; yi++ {
-				ci := xi + yi*cXSize
-				for i := 0; i < 180; i++ {
-					start := ci*680400 + li*32400 + i*180
-					end := ci*680400 + li*32400 + i*180 + 180
-					chunkrow := strings.Join(textMap[start:end], "")
-					rows[yi*180+i] = rows[yi*180+i] + chunkrow
-				}
-			}
-		}
-		layer := strings.Join(rows[:], "\n")
-		filename := filepath.Join(root, fmt.Sprintf("o_%v", li))
-		f, err := os.Create(filename)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		f.WriteString(layer)
-	}
-
-	fmt.Printf("dimensions x:%v, y:%v\n", cXSize, cYSize)
-
 	return nil
 }
