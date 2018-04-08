@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -223,6 +225,7 @@ type WorldRow struct {
 
 type WorldCell struct {
 	Symbol string
+	Color  *image.Uniform
 }
 
 func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
@@ -271,20 +274,28 @@ func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
 			lzp := 0
 			for _, e := range l {
 				s := m.Symbol(e.OvermapTerrainID)
+				c := m.Color(e.OvermapTerrainID)
 				for i := 0; i < int(e.Count); i++ {
 					tmi := ci*680400 + li*32400 + lzp
-					cells[tmi] = WorldCell{Symbol: s}
+					cells[tmi] = WorldCell{
+						Symbol: s,
+						Color:  c,
+					}
 					lzp++
 				}
 			}
 		}
 	}
 
+	dc := image.NewUniform(color.RGBA{150, 150, 150, 255})
 	for i := 0; i < chunkCapacity; i++ {
 		if _, ok := doneChunks[i]; !ok {
 			fmt.Printf("filling in blank chunk: %v\n", i)
 			for e := 0; e < 680400; e++ {
-				cells[i*680400+e] = WorldCell{Symbol: " "}
+				cells[i*680400+e] = WorldCell{
+					Symbol: " ",
+					Color:  dc,
+				}
 			}
 		}
 	}

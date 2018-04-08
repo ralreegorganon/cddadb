@@ -174,41 +174,40 @@ func Blam2(root string, w *overmap.World) error {
 		text = append(text, row)
 	}
 
-	pt := freetype.Pt(0, 0+int(c.PointToFixed(*size)>>6))
-	for _, s := range text {
-		for _, cc := range s {
-			awidth, ok := face.GlyphAdvance(cc)
-			if ok != true {
-				return fmt.Errorf("fuck")
-			}
-			//fmt.Printf("%v\n", pt.X)
-			c.DrawString(string(cc), pt)
-			pt.X += awidth
-		}
-		pt.X = c.PointToFixed(0)
-		pt.Y += c.PointToFixed(*size * *spacing)
-	}
-
 	// pt := freetype.Pt(0, 0+int(c.PointToFixed(*size)>>6))
-	// for _, r := range l.Rows {
-	// 	for _, cell := range r.Cells {
-	// 		fmt.Printf("x: %v, y: %v\n", pt.X, pt.Y)
-
-	// 		var first rune
-	// 		for _, c := range cell.Symbol {
-	// 			first = c
-	// 			break
-	// 		}
-	// 		awidth, ok := face.GlyphAdvance(first)
+	// for _, s := range text {
+	// 	for _, cc := range s {
+	// 		awidth, ok := face.GlyphAdvance(cc)
 	// 		if ok != true {
 	// 			return fmt.Errorf("fuck")
 	// 		}
-	// 		c.DrawString(cell.Symbol, pt)
+	// 		//fmt.Printf("%v\n", pt.X)
+	// 		c.DrawString(string(cc), pt)
 	// 		pt.X += awidth
 	// 	}
 	// 	pt.X = c.PointToFixed(0)
 	// 	pt.Y += c.PointToFixed(*size * *spacing)
 	// }
+
+	pt := freetype.Pt(0, 0+int(c.PointToFixed(*size)>>6))
+	for _, r := range l.Rows {
+		for _, cell := range r.Cells {
+			var first rune
+			for _, c := range cell.Symbol {
+				first = c
+				break
+			}
+			awidth, ok := face.GlyphAdvance(first)
+			if ok != true {
+				return fmt.Errorf("fuck")
+			}
+			c.SetSrc(cell.Color)
+			c.DrawString(cell.Symbol, pt)
+			pt.X += awidth
+		}
+		pt.X = c.PointToFixed(0)
+		pt.Y += c.PointToFixed(*size * *spacing)
+	}
 
 	filename := filepath.Join(root, fmt.Sprintf("o_%v.png", 10))
 	//filename := filepath.Join(root, fmt.Sprintf("o_%v.png", i))
