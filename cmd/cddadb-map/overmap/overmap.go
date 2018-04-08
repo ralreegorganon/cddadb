@@ -289,7 +289,7 @@ func (o *Overmap) RenderToFilesAlt(m *metadata.Overmap, root string) error {
 	for i := 0; i < chunkCapacity; i++ {
 		if _, ok := doneChunks[i]; !ok {
 			for e := 0; e < 680400; e++ {
-				textMap[i*680400+e] = "#"
+				textMap[i*680400+e] = " "
 			}
 		}
 	}
