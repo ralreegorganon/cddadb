@@ -3,6 +3,8 @@ package metadata
 import (
 	"bytes"
 	"encoding/json"
+	"image"
+	"image/color"
 	"io"
 	"io/ioutil"
 	"os"
@@ -338,4 +340,13 @@ func (o *Overmap) Symbol(id string) string {
 		}
 	}
 	return "\u2622"
+}
+
+func (o *Overmap) Color(id string) *image.Uniform {
+	blue := color.RGBA{0, 0, 255, 255}
+	bz := image.NewUniform(blue)
+	if _, tok := o.built[id]; tok {
+		return bz
+	}
+	return bz
 }

@@ -32,12 +32,43 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = o.RenderToFilesAlt(m, "/Users/jj/Desktop/Grantsburg")
+	// err = o.RenderToFilesAlt(m, "/Users/jj/Desktop/Grantsburg")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// save := "/Users/jj/Downloads/TrinityCenter"
+	// o, err := overmap.FromSave(save)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// err = o.RenderToFilesAlt(m, "/Users/jj/Desktop/TrinityCenter")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// err = rasterize.BlamHacks("/Users/jj/Desktop/TrinityCenter/o_10")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// err = rasterize.Blam("/Users/jj/Desktop/Grantsburg/o_10")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	w, err := o.RenderToAttributes(m)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = rasterize.Blam("/Users/jj/Desktop/Grantsburg/o_10")
+	// err = w.RenderToFiles("/Users/jj/Desktop/Grantsburg2")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	err = rasterize.Blam2("/Users/jj/Desktop/Grantsburg2/", w)
 	if err != nil {
 		log.Fatal(err)
 	}

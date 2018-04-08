@@ -209,19 +209,200 @@ func abs(x int) int {
 	return x
 }
 
+type World struct {
+	Layers []WorldLayer
+}
+
+type WorldLayer struct {
+	Rows []WorldRow
+}
+
+type WorldRow struct {
+	Cells []WorldCell
+}
+
+type WorldCell struct {
+	Symbol string
+}
+
+func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
+	for _, c := range o.Chunks {
+		for _, l := range c.Layers {
+			for _, e := range l {
+				if exists := m.Exists(e.OvermapTerrainID); !exists {
+					return nil, fmt.Errorf("couldn't find terrain: %s", e.OvermapTerrainID)
+				}
+			}
+		}
+	}
+
+	cXMax := 0
+	cXMin := 0
+	cYMax := 0
+	cYMin := 0
+
+	for _, c := range o.Chunks {
+		if c.X > cXMax {
+			cXMax = c.X
+		}
+		if c.Y > cYMax {
+			cYMax = c.Y
+		}
+		if c.X < cXMin {
+			cXMin = c.X
+		}
+		if c.Y < cYMin {
+			cYMin = c.Y
+		}
+	}
+
+	cXSize := abs(cXMax) + abs(cXMin) + 1
+	cYSize := abs(cYMax) + abs(cYMin) + 1
+
+	chunkCapacity := cXSize * cYSize
+
+	doneChunks := make(map[int]bool)
+	cells := make([]WorldCell, 680400*chunkCapacity)
+	for _, c := range o.Chunks {
+		ci := c.X + (0 - cXMin) + cXSize*(c.Y+0-cYMin)
+		doneChunks[ci] = true
+		fmt.Printf("processing x:%v, y:%v as %v\n", c.X, c.Y, ci)
+		for li, l := range c.Layers {
+			lzp := 0
+			for _, e := range l {
+				s := m.Symbol(e.OvermapTerrainID)
+				for i := 0; i < int(e.Count); i++ {
+					tmi := ci*680400 + li*32400 + lzp
+					cells[tmi] = WorldCell{Symbol: s}
+					lzp++
+				}
+			}
+		}
+	}
+
+	for i := 0; i < chunkCapacity; i++ {
+		if _, ok := doneChunks[i]; !ok {
+			fmt.Printf("filling in blank chunk: %v\n", i)
+			for e := 0; e < 680400; e++ {
+				cells[i*680400+e] = WorldCell{Symbol: " "}
+			}
+		}
+	}
+
+	// chunk*680400 + layer*32400 + row*180 + cell
+	// chunk =  xchunk + ychunk*xchunksize
+
+	worldLayers := make([]WorldLayer, 21)
+	for l := 0; l < 21; l++ {
+		worldLayers[l].Rows = make([]WorldRow, 180*cYSize)
+		for r := 0; r < 180*cYSize; r++ {
+			worldLayers[l].Rows[r].Cells = make([]WorldCell, 180*cXSize)
+		}
+	}
+
+	for li := 0; li < 21; li++ {
+		for xi := 0; xi < cXSize; xi++ {
+			for yi := 0; yi < cYSize; yi++ {
+				for ri := 0; ri < 180; ri++ {
+					for ci := 0; ci < 180; ci++ {
+						worldLayers[li].Rows[yi*180+ri].Cells[xi*180+ci] = cells[(xi+yi*cXSize)*680400+li*32400+ri*180+ci]
+					}
+				}
+			}
+		}
+	}
+
+	// for li := 0; li < 21; li++ {
+	// 	for xi := 0; xi < cXSize; xi++ {
+	// 		for yi := 0; yi < cYSize; yi++ {
+	// 			for ri := 0; ri < 180; ri++ {
+	// 				worldCells := make([]WorldCell, 180*cXSize)
+	// 				for ci := 0; ci < 180; ci++ {
+	// 					worldCells[xi*180+ci] = cells[(xi+yi*cXSize)*680400+li*32400+ri*180+ci]
+	// 				}
+	// 				worldRows[yi*180+ri] = WorldRow{Cells: worldCells}
+	// 			}
+	// 		}
+	// 	}
+	// 	worldLayers[li] = WorldLayer{Rows: worldRows}
+	// }
+	world := World{Layers: worldLayers}
+
+	index := (0+0*cXSize)*680400 + 0*32400 + 0*180 + 0
+	fmt.Printf("checking out index: %v,  %v \n", index, cells[index])
+	fmt.Printf("wut: %v", world.Layers[0].Rows[0].Cells[0])
+	//fmt.Printf("first cell: %v", w.Layers[0].Rows[0].Cells[0])
+
+	// worldLayers := make([]WorldLayer, 21)
+	// for li := 0; li < 21; li++ {
+	// 	rows := make([]string, 180*cYSize)
+	// 	worldRows := make([]WorldRow, 180*cYSize)
+	// 	for xi := 0; xi < cXSize; xi++ {
+	// 		for yi := 0; yi < cYSize; yi++ {
+	// 			ci := xi + yi*cXSize
+	// 			for i := 0; i < 180; i++ {
+	// 				start := ci*680400 + li*32400 + i*180
+	// 				end := ci*680400 + li*32400 + i*180 + 180
+	// 				chunkrow := strings.Join(textMap[start:end], "")
+	// 				rows[yi*180+i] = rows[yi*180+i] + chunkrow
+	// 			}
+	// 		}
+	// 	}
+
+	// }
+
+	return &world, nil
+}
+
+func (w *World) RenderToFiles(root string) error {
+	err := os.MkdirAll(root, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	for i, l := range w.Layers {
+		filename := filepath.Join(root, fmt.Sprintf("o_%v", i))
+		f, err := os.Create(filename)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		var b strings.Builder
+		for _, r := range l.Rows {
+			for _, c := range r.Cells {
+				b.WriteString(c.Symbol)
+			}
+			b.WriteString("\n")
+		}
+		f.WriteString(b.String())
+	}
+	return nil
+}
+
 func (o *Overmap) RenderToFilesAlt(m *metadata.Overmap, root string) error {
 	err := os.MkdirAll(root, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
+	missingTerrain := make(map[string]int)
 	for _, c := range o.Chunks {
 		for _, l := range c.Layers {
 			for _, e := range l {
 				if exists := m.Exists(e.OvermapTerrainID); !exists {
-					return fmt.Errorf("couldn't find terrain: %s", e.OvermapTerrainID)
+					if _, ok := missingTerrain[e.OvermapTerrainID]; !ok {
+						missingTerrain[e.OvermapTerrainID] = 0
+					} else {
+						missingTerrain[e.OvermapTerrainID] = missingTerrain[e.OvermapTerrainID] + 1
+					}
 				}
 			}
+		}
+	}
+
+	if len(missingTerrain) > 0 {
+		for k, v := range missingTerrain {
+			fmt.Printf("missing terrain: %v x %v\n", k, v)
 		}
 	}
 
@@ -259,7 +440,14 @@ func (o *Overmap) RenderToFilesAlt(m *metadata.Overmap, root string) error {
 		for li, l := range c.Layers {
 			lzp := 0
 			for _, e := range l {
-				s := m.Symbol(e.OvermapTerrainID)
+
+				var s string
+				if m.Exists(e.OvermapTerrainID) {
+					s = m.Symbol(e.OvermapTerrainID)
+				} else {
+					s = "?"
+				}
+
 				for i := 0; i < int(e.Count); i++ {
 					tmi := ci*680400 + li*32400 + lzp
 					textMap[tmi] = s
