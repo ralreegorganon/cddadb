@@ -20,13 +20,15 @@ func main() {
 	flag.Parse()
 
 	jsonRoot := "/Users/jj/code/Cataclysm-DDA/data/json"
+	modsRoot := "/Users/jj/code/Cataclysm-DDA/data/mods"
 	m := metadata.NewOvermap()
-	err := m.BuildUpForJsonRoot(jsonRoot)
+	err := m.BuildUp(jsonRoot, modsRoot)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	save := "/Users/jj/code/Cataclysm-DDA/save/Hannastown"
+	// save := "/Users/jj/Downloads/trinitycenter"
 	o, err := overmap.FromSave(save)
 	if err != nil {
 		log.Fatal(err)
@@ -42,7 +44,8 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 
-	err = rasterize.Blam2("/Users/jj/Desktop/Hannastown/", w)
+	// err = rasterize.Blam2("/Users/jj/Desktop/TrinityCenter/", w)
+	err = rasterize.Blam2("/Users/jj/Desktop/Hannastown", w)
 	if err != nil {
 		log.Fatal(err)
 	}

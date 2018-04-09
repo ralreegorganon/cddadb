@@ -160,8 +160,8 @@ func NewOvermap() *Overmap {
 	return l
 }
 
-func (o *Overmap) BuildUpForJsonRoot(root string) error {
-	files, err := sourceFiles(root)
+func (o *Overmap) BuildUp(jsonRoot, modsRoot string) error {
+	files, err := sourceFiles(jsonRoot, modsRoot)
 	if err != nil {
 		return err
 	}
@@ -179,10 +179,10 @@ func (o *Overmap) BuildUpForJsonRoot(root string) error {
 	return nil
 }
 
-func sourceFiles(root string) ([]string, error) {
+func sourceFiles(jsonRoot, modsRoot string) ([]string, error) {
 	files := []string{}
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(jsonRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -197,6 +197,23 @@ func sourceFiles(root string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// need to filter to active mods for save
+	// err = filepath.Walk(modsRoot, func(path string, info os.FileInfo, err error) error {
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	if info.IsDir() {
+	// 		return nil
+	// 	}
+	// 	if strings.HasSuffix(path, ".json") {
+	// 		files = append(files, path)
+	// 	}
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	sort.Sort(inLoadOrder(files))
 
@@ -361,92 +378,107 @@ func (o *Overmap) Symbol(id string) string {
 			return s
 		}
 	}
-	return "\u2622"
+	return "?"
 }
 
 func (o *Overmap) Color(id string) (*image.Uniform, *image.Uniform) {
 	white := image.NewUniform(color.RGBA{150, 150, 150, 255})
 	black := image.NewUniform(color.RGBA{0, 0, 0, 255})
+	red := image.NewUniform(color.RGBA{255, 0, 0, 255})
+	green := image.NewUniform(color.RGBA{0, 110, 0, 255})
+	brown := image.NewUniform(color.RGBA{92, 51, 23, 255})
+	blue := image.NewUniform(color.RGBA{0, 0, 200, 255})
+	magenta := image.NewUniform(color.RGBA{139, 58, 98, 255})
+	cyan := image.NewUniform(color.RGBA{0, 150, 180, 255})
+	gray := image.NewUniform(color.RGBA{150, 150, 150, 255})
+	darkGray := image.NewUniform(color.RGBA{99, 99, 99, 255})
+	lightRed := image.NewUniform(color.RGBA{255, 150, 150, 255})
+	lightGreen := image.NewUniform(color.RGBA{0, 255, 0, 255})
+	yellow := image.NewUniform(color.RGBA{255, 255, 0, 255})
+	lightBlue := image.NewUniform(color.RGBA{100, 100, 255, 255})
+	lightMagenta := image.NewUniform(color.RGBA{254, 0, 254, 255})
+	lightCyan := image.NewUniform(color.RGBA{0, 240, 255, 255})
+
 	if c, tok := o.built[id]; tok {
 		switch c.Color {
 		case "black_yellow":
-			return white, black
+			return black, yellow
 		case "blue":
-			return image.NewUniform(color.RGBA{0, 0, 255, 255}), black
+			return blue, black
 		case "brown":
-			return white, black
+			return brown, black
 		case "c_yellow_green":
-			return white, black
+			return yellow, green
 		case "cyan":
-			return white, black
+			return cyan, black
 		case "dark_gray":
-			return white, black
+			return darkGray, black
 		case "dark_gray_magenta":
-			return white, black
+			return darkGray, magenta
 		case "green":
-			return image.NewUniform(color.RGBA{0, 128, 0, 255}), black
+			return green, black
 		case "h_dark_gray":
-			return white, black
+			return darkGray, black
 		case "h_yellow":
-			return white, black
+			return yellow, black
 		case "i_blue":
-			return white, black
+			return black, blue
 		case "i_brown":
-			return white, black
+			return black, brown
 		case "i_cyan":
-			return white, black
+			return black, cyan
 		case "i_green":
-			return white, black
+			return black, green
 		case "i_light_blue":
-			return white, black
+			return black, lightBlue
 		case "i_light_cyan":
-			return white, black
+			return black, lightCyan
 		case "i_light_gray":
-			return white, black
+			return black, gray
 		case "i_light_green":
-			return white, black
+			return black, lightGreen
 		case "i_light_red":
-			return white, black
+			return black, lightRed
 		case "i_magenta":
-			return white, black
+			return black, magenta
 		case "i_pink":
-			return white, black
+			return black, lightMagenta
 		case "i_red":
-			return white, black
+			return black, red
 		case "i_yellow":
-			return white, black
+			return black, yellow
 		case "light_blue":
-			return image.NewUniform(color.RGBA{173, 216, 230, 255}), black
+			return lightBlue, black
 		case "light_cyan":
-			return white, black
+			return lightCyan, black
 		case "light_gray":
-			return white, black
+			return gray, black
 		case "light_green":
-			return image.NewUniform(color.RGBA{144, 238, 144, 255}), black
+			return lightGreen, black
 		case "light_green_yellow":
-			return white, black
+			return lightGreen, yellow
 		case "light_red":
-			return white, black
+			return lightRed, black
 		case "magenta":
-			return white, black
+			return magenta, black
 		case "pink":
-			return white, black
+			return lightMagenta, black
 		case "pink_magenta":
-			return white, black
+			return lightMagenta, magenta
 		case "red":
-			return white, black
+			return red, black
 		case "white":
 			return white, black
 		case "white_magenta":
-			return white, black
+			return white, magenta
 		case "white_white":
-			return white, black
+			return white, white
 		case "yellow":
-			return white, black
+			return yellow, black
 		case "yellow_cyan":
-			return white, black
+			return yellow, cyan
 		case "yellow_magenta":
-			return white, black
+			return yellow, magenta
 		default:
 			return white, black
 		}

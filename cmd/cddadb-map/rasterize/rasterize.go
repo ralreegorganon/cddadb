@@ -79,7 +79,7 @@ func Blam2(root string, w *overmap.World) error {
 			if ok != true {
 				return fmt.Errorf("fuck")
 			}
-
+			draw.Draw(rgba, image.Rect(int(pt.X>>6), int(pt.Y>>6), int(pt.X>>6)+22, int(pt.Y>>6)-24), cell.ColorBG, image.ZP, draw.Src)
 			c.SetSrc(cell.ColorFG)
 			c.DrawString(cell.Symbol, pt)
 			pt.X += awidth

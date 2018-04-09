@@ -176,14 +176,24 @@ type WorldCell struct {
 }
 
 func (o *Overmap) RenderToAttributes(m *metadata.Overmap) (*World, error) {
+	missingTerrain := make(map[string]int)
 	for _, c := range o.Chunks {
 		for _, l := range c.Layers {
 			for _, e := range l {
 				if exists := m.Exists(e.OvermapTerrainID); !exists {
-					return nil, fmt.Errorf("couldn't find terrain: %s", e.OvermapTerrainID)
+					//return nil, fmt.Errorf("couldn't find terrain: %s", e.OvermapTerrainID)
+
+					if _, ok := missingTerrain[e.OvermapTerrainID]; !ok {
+						missingTerrain[e.OvermapTerrainID] = 0
+					}
+					missingTerrain[e.OvermapTerrainID]++
 				}
 			}
 		}
+	}
+
+	for k, v := range missingTerrain {
+		fmt.Printf("missing terrain: %v x %v\n", k, v)
 	}
 
 	cXMax := 0
